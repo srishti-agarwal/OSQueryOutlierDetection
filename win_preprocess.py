@@ -24,7 +24,7 @@ class processData():
         ndict = defaultdict(list)
         regdict = defaultdict(list)
         windict = defaultdict(list)
-        path = os.path.join('logs',logpath)
+        path = os.path.join('data',logpath)
         print (path)
         data = pd.read_json(path, lines=True)
         data['calendarTime'] = data['calendarTime'].apply(lambda x: x[0:x.rfind(':')])

@@ -2,7 +2,14 @@ import model
 import sys
 
 def create_model():
-    model.create_and_save()
+    print ("Enter 1 for win and 2 for linux")
+    ch =  input("Enter the OS type? ")
+    if (ch == 1):
+        model.create_and_save_win()
+    elif (ch==2):
+        model.create_and_save_lin()
+    else:
+        print ("Invalid choice")
 
 def predict():
     print('Choose an algorithm: ')

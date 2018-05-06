@@ -7,7 +7,7 @@ from sklearn.cluster import KMeans
 import numpy as np
 import pandas as pd
 from win_preprocess import processData
-import os_preprocess as os_feature
+from lin_preprocess import processLData
 
 def collection_values_to_array(dataset):
     dataset = np.array(dataset)
@@ -113,7 +113,7 @@ def applyPCAModel():
     ax.scatter(dftrain['principal_feature1'], dftrain['principal_feature2'], c=dftrain["anomaly_PCA"].apply(lambda x: colors[x]))
     plt.show()
 
-def create_and_save():
+def create_and_save_win():
     #creating the train feature vector
     train_data = processData()
     train_data.processLogs('train.log')
@@ -125,6 +125,23 @@ def create_and_save():
     test_vec = test_data.dataframe
 
     #save the test and train features
+    print ("Saving train and test feature vectors")
+    train_vec.to_csv('data/train_vec.csv', index=False)
+    test_vec.to_csv('data/test_vec.csv', index=False)
+
+def create_and_save_lin():
+    #creating the train feature vector
+    train_data = processLData()
+    train_data.processLogs('train_lin.log')
+    train_vec = train_data.dataframe
+
+    #creating the test feature vector
+    test_data = processLData()
+    test_data.processLogs('test_lin.log')
+    test_vec = test_data.dataframe
+
+    #save the test and train features
+    print ("Saving train and test feature vectors")
     train_vec.to_csv('data/train_vec.csv', index=False)
     test_vec.to_csv('data/test_vec.csv', index=False)
 
