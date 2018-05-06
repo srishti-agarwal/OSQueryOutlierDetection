@@ -1,57 +1,50 @@
 import pandas as pd
 import os
+import custom_function as cf
 
 from collections import defaultdict
 from features import fillBasicFeatures, fillNetworkFeatures, fillRegistryFeatures, fillWindowsFeatures, aggregateFeature
-from OCSVM import applySVM
-from PCA import applyPCAModel
-basicfeatureList = ["scheduled_tasks", "shared_resources", "wmi_cli_event_consumers",
-                                    "logged_in_users","services", "etc_hosts"]
-networkList = ["open_ports"]
-registryList = ["startup_items"]
-windowAttackList =["pack_windows-attacks_CCleaner_Trojan.Floxif", "Winsecurity_info_1","unTabs_1", "conhost.exe_incorrect_path",
-                      "dllhost.exe_incorrect_path", "lsass.exe_incorrect_path","services.exe_incorrect_parent_process",
-                      "svchost.exe_incorrect_path", "svchost.exe_incorrect_parent_process","wmiprvse.exe_incorrect_path",
-                      "winlogon.exe_incorrect_path"]
-finalFeatures = ["eventTime"]+[v for v in basicfeatureList+networkList+registryList+windowAttackList]
-dataframe_train = pd.DataFrame(columns=finalFeatures)
-dataframe_test = pd.DataFrame(columns=finalFeatures)
 
-def processLogs(dataframe,logpath):
-    bdict = defaultdict(list)
-    ndict = defaultdict(list)
-    regdict = defaultdict(list)
-    windict = defaultdict(list)
-    path = os.path.join('logs',logpath)
-    print (path)
-    data = pd.read_json(path, lines=True)
-    # data = pd.read_json('logs/logs.txt', lines=True)
-    data['calendarTime'] = data['calendarTime'].apply(lambda x: x[0:x.rfind(':')])
-    group_using_time = data.groupby(['unixTime'])
-    eventList = list(group_using_time)
-    rowIndex = 0
-    for timeLine in eventList:
-        dataframe.at[rowIndex,"eventTime"] = timeLine[0]
-        series = timeLine[1]
-        for row in series.itertuples():
-            feature = getattr(row, "name")
-            if feature in basicfeatureList:
-                fillBasicFeatures(row, feature, bdict)
-            elif feature in networkList:
-                fillNetworkFeatures(row, feature, ndict)
-            elif feature in registryList:
-                fillRegistryFeatures(row,feature,regdict)
-            elif feature in windowAttackList:
-                fillWindowsFeatures(row, feature,windict)
-        aggregateFeature(rowIndex, dataframe, dict(bdict,**ndict,**regdict,**windict))
-        bdict.clear(), ndict.clear(), regdict.clear(), windict.clear()
-        rowIndex +=1
+class processData():
+    def __init__(self):
+        self.basicfeatureList = ["scheduled_tasks", "shared_resources", "wmi_cli_event_consumers",
+                                    "logged_in_users","services", "etc_hosts", "svchost.exe_incorrect_path"]
+        self.networkList = ["open_ports"]
+        self.registryList = ["startup_items"]
+        self.windowAttackList =["pack_windows-attacks_CCleaner_Trojan.Floxif", "pack_Winsecurity_info_1","pack_unTabs_1", "pack_conhost.exe_incorrect_path",
+                      "pack_dllhost.exe_incorrect_path", "pack_lsass.exe_incorrect_path","pack_services.exe_incorrect_parent_process",
+                      "pack_svchost.exe_incorrect_path", "pack_svchost.exe_incorrect_parent_process","pack_wmiprvse.exe_incorrect_path",
+                      "pack_winlogon.exe_incorrect_path"]
+        self.finalFeatures = ["eventTime"]+[v for v in self.basicfeatureList+self.networkList+self.registryList+self.windowAttackList]
+        self.dataframe = pd.DataFrame(columns=self.finalFeatures)
 
 
-processLogs(dataframe_train,'osqueryd_results_train.log')
-processLogs(dataframe_test,'osqueryd_results_test.log')
-dataframe_train = dataframe_train.fillna(0)
-dataframe_test= dataframe_test.fillna(0)
-# applyPCAModel(dataframe_train,dataframe_test)
-applySVM(dataframe_train, dataframe_test)
-
+    def processLogs(self,logpath):
+        bdict = defaultdict(list)
+        ndict = defaultdict(list)
+        regdict = defaultdict(list)
+        windict = defaultdict(list)
+        path = os.path.join('logs',logpath)
+        print (path)
+        data = pd.read_json(path, lines=True)
+        data['calendarTime'] = data['calendarTime'].apply(lambda x: x[0:x.rfind(':')])
+        group_using_time = data.groupby(['calendarTime'])
+        eventList = list(group_using_time)
+        rowIndex = 0
+        for timeLine in eventList:
+            self.dataframe.at[rowIndex,"eventTime"] = timeLine[0]
+            series = timeLine[1]
+            for row in series.itertuples():
+                feature = getattr(row, "name")
+                if feature in self.basicfeatureList:
+                    fillBasicFeatures(row, feature, bdict)
+                if feature in self.networkList:
+                    fillNetworkFeatures(row, feature, ndict)
+                if feature in self.registryList:
+                    fillRegistryFeatures(row,feature,regdict)
+                if feature in self.windowAttackList:
+                    fillWindowsFeatures(row, feature,windict)
+            fullDict = cf.merge_two_dicts(bdict,cf.merge_two_dicts(cf.merge_two_dicts(ndict,regdict),windict))
+            aggregateFeature(rowIndex, self.dataframe, fullDict)
+            bdict.clear(), ndict.clear(), regdict.clear(), windict.clear()
+            rowIndex +=1
